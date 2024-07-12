@@ -16,8 +16,17 @@ type Message = {
 const messages = [] as Message[];
 const messageEmitter = new EventEmitter();
 
-app.get('/messages', (req, res) => {
-  messageEmitter.once('message', () => res.send(messages));
+app.get('/message', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Connection', 'keep-alive');
+
+  const callback = (data: Message) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  messageEmitter.on('message', callback);
+  req.on('close', () => messageEmitter.off('message', callback));
 });
 
 app.post('/messages', (req, res) => {
@@ -27,7 +36,7 @@ app.post('/messages', (req, res) => {
   };
 
   messages.push(message);
-  messageEmitter.emit('message');
+  messageEmitter.emit('message', message);
   res.status(201).json(message);
 });
 
