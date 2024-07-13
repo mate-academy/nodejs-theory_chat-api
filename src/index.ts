@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import EventEmitter from 'node:events';
+import { WebSocketServer } from 'ws';
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -40,6 +41,24 @@ app.post('/messages', (req, res) => {
   res.status(201).json(message);
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}/`);
+const server = app.listen(PORT);
+const wss = new WebSocketServer({ server });
+
+wss.on('connection', (client) => {
+  // Event handler for new client connections
+  console.log('A new client connected');
+
+  // Event handler for receiving data from clients
+  client.on('message', (data) => {
+    console.log(`Received data: ${data}`);
+
+    // Sending a response to the client
+    client.send('Data received');
+  });
+});
+
+messageEmitter.on('message', (data) => {
+  for (const client of wss.clients) {
+    client.send(JSON.stringify(data));
+  }
 });
